@@ -1,0 +1,202 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      Role     @default(SLP)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  students  Student[]
+  sessions  Session[]
+  notes     Note[]
+  goals     Goal[]
+
+  @@map("users")
+}
+
+model Student {
+  id          String    @id @default(cuid())
+  firstName   String
+  lastName    String
+  dateOfBirth DateTime
+  grade       String?
+  teacher     String?
+  school      String?
+  parentName  String?
+  parentEmail String?
+  parentPhone String?
+  startDate   DateTime  @default(now())
+  isActive    Boolean   @default(true)
+  generalNotes String?   // General notes about the student
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions     Session[]
+  goals        Goal[]
+  sessionNotes Note[]
+
+  @@map("students")
+}
+
+model Session {
+  id          String        @id @default(cuid())
+  startTime   DateTime
+  endTime     DateTime?
+  status      SessionStatus @default(SCHEDULED)
+  location      String?
+  sessionType   SessionType   @default(INDIVIDUAL)
+  summaryNotes  String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  userId        String
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  detailedNotes Note[]
+
+  @@map("sessions")
+}
+
+model Goal {
+  id            String     @id @default(cuid())
+  title         String
+  description   String
+  targetArea    TargetArea
+  currentLevel  Int        @default(0) // Progress percentage 0-100
+  targetLevel   Int        @default(100)
+  targetDate    DateTime?
+  status        GoalStatus @default(ACTIVE)
+  isLongTerm    Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  // Relations
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  goalNotes    Note[]
+  progress     Progress[]
+
+  @@map("goals")
+}
+
+model Progress {
+  id          String   @id @default(cuid())
+  value       Int      // Progress value (0-100)
+  notes       String?
+  recordedAt  DateTime @default(now())
+  
+  // Relations
+  goalId String
+  goal   Goal   @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@map("progress")
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  title     String?
+  content   String
+  noteType  NoteType @default(SESSION)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  sessionId String?
+  session   Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  goalId    String?
+  goal      Goal?    @relation(fields: [goalId], references: [id], onDelete: SetNull)
+
+  @@map("notes")
+}
+
+model GoalTemplate {
+  id          String     @id @default(cuid())
+  title       String
+  description String
+  targetArea  TargetArea
+  isPublic    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("goal_templates")
+}
+
+// Enums
+enum Role {
+  SLP
+  ADMIN
+  ASSISTANT
+}
+
+enum SessionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum SessionType {
+  INDIVIDUAL
+  GROUP
+  EVALUATION
+  CONSULTATION
+  SCREENING
+}
+
+enum TargetArea {
+  ARTICULATION
+  LANGUAGE_EXPRESSION
+  LANGUAGE_COMPREHENSION
+  FLUENCY
+  VOICE
+  SOCIAL_COMMUNICATION
+  COGNITIVE_COMMUNICATION
+  SWALLOWING
+  HEARING
+  AUGMENTATIVE_COMMUNICATION
+  LITERACY
+  OTHER
+}
+
+enum GoalStatus {
+  ACTIVE
+  MASTERED
+  DISCONTINUED
+  ON_HOLD
+}
+
+enum NoteType {
+  SESSION
+  PROGRESS
+  BEHAVIOR
+  PARENT_COMMUNICATION
+  EVALUATION
+  GENERAL
+  MEDICAL
+}
